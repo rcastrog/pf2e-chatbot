@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deus Ex Machina Chatbot</title>
+    <style>
+        body { font-family: 'Open Sans', sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
+        header { background-color: #ffffff; color: #333; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        header img { height: 120px; margin-bottom: 10px; border-radius: 15px; }
+        h2 { font-size: 28px; font-weight: 600; margin: 0; }
+        #chatbox { padding: 20px; height: 400px; overflow-y: auto; background-color: white; margin: 20px auto; max-width: 600px; border-radius: 8px; border: 1px solid #ddd; }
+        .user-message { color: #007bff; margin: 5px 0; }
+        .bot-message { color: #28a745; margin: 5px 0; }
+        .source-table { margin-top: 10px; border-collapse: collapse; width: 100%; }
+        th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        #message-box { display: flex; justify-content: center; margin: 10px; }
+        #message { width: 80%; padding: 10px; margin-right: 5px; border-radius: 5px; border: 1px solid #ccc; }
+        #send { padding: 10px; border: none; border-radius: 5px; background-color: #007bff; color: white; cursor: pointer; }
+        #send:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="logo_DEM.jpg" alt="Deus Ex Machina Logo">
+        <h2>Deus Ex Machina Chatbot</h2>
+    </header>
+    <div id="chatbox"></div>
+    <div id="message-box">
+        <input type="text" id="message" placeholder="Type your message...">
+        <button id="send">Send</button>
+    </div>
+
+    <script>
+        const chatbox = document.getElementById("chatbox");
+        const messageInput = document.getElementById("message");
+        const sendButton = document.getElementById("send");
+
+        function displayMessage(sender, text) {
+            const messageDiv = document.createElement("div");
+            messageDiv.textContent = `${sender}: ${text}`;
+            messageDiv.className = sender === "User" ? "user-message" : "bot-message";
+            chatbox.appendChild(messageDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        function displaySources(sources) {
+            const table = document.createElement("table");
+            table.className = "source-table";
+            const header = table.insertRow();
+            header.insertCell().textContent = "Source";
+            header.insertCell().textContent = "Page";
+
+            sources.forEach(src => {
+                const row = table.insertRow();
+                row.insertCell().textContent = src.file_name;
+                row.insertCell().textContent = src.page_number;
+            });
+            chatbox.appendChild(table);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const userMessage = messageInput.value;
+            if (!userMessage) return;
+            displayMessage("User", userMessage);
+            messageInput.value = "";
+
+            try {
+                const response = await fetch("https://d9d1-216-243-47-238.ngrok-free.app/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: userMessage })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                let botResponse = data.response;
+                displayMessage("Bot", botResponse);
+
+                // Display sources if available
+                if (data.sources && data.sources.length > 0) {
+                    displaySources(data.sources);
+                }
+
+            } catch (error) {
+                displayMessage("Error", "Failed to connect to the chatbot.");
+                console.error("Error sending message:", error);
+            }
+        }
+
+        sendButton.addEventListener("click", sendMessage);
+        messageInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendMessage();
+        });
+    </script>
+</body>
+</html>
